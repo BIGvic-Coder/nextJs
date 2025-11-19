@@ -64,10 +64,6 @@ export async function fetchLatestInvoices() {
       LIMIT 5;
     `;
 
-    console.log("✅ Latest invoices fetched:", data.length);
-
-    if (!data || data.length === 0) return [];
-
     return data.map((invoice) => ({
       ...invoice,
       amount: Number(invoice.amount),
@@ -75,11 +71,11 @@ export async function fetchLatestInvoices() {
     }));
   } catch (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch the latest invoices.");
+    throw new Error("Failed to fetch latest invoices.");
   }
 }
 
-/* ------------------------- Dashboard Card Data ------------------------- */
+/* ------------------------- Dashboard Stats ------------------------- */
 export async function fetchCardData() {
   try {
     const [invoiceCount, customerCount, invoiceStatus] = await Promise.all([
@@ -101,7 +97,7 @@ export async function fetchCardData() {
     };
   } catch (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch card data.");
+    throw new Error("Failed to fetch dashboard data.");
   }
 }
 
@@ -110,14 +106,13 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number
 ) {
-  // ✅ Prevent NaN or invalid pagination values
   const safePage =
     Number.isFinite(currentPage) && currentPage > 0 ? currentPage : 1;
   const offset = (safePage - 1) * ITEMS_PER_PAGE;
   const search = `%${query || ""}%`;
 
   try {
-    const data = await sql<InvoicesTable[]>`
+    return await sql<InvoicesTable[]>`
       SELECT DISTINCT
         invoices.id,
         invoices.amount,
@@ -137,15 +132,13 @@ export async function fetchFilteredInvoices(
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset};
     `;
-
-    return data || [];
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch invoices.");
   }
 }
 
-/* ------------------------- Invoice Count for Pagination ------------------------- */
+/* ------------------------- Invoice Count ------------------------- */
 export async function fetchInvoicesPages(query: string) {
   const search = `%${query || ""}%`;
 
@@ -165,11 +158,11 @@ export async function fetchInvoicesPages(query: string) {
     return Math.ceil(Number(data?.[0]?.count ?? 0) / ITEMS_PER_PAGE);
   } catch (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch total number of invoices.");
+    throw new Error("Failed to fetch total invoice count.");
   }
 }
 
-/* ------------------------- Single Invoice by ID ------------------------- */
+/* ------------------------- Single Invoice By ID ------------------------- */
 export async function fetchInvoiceById(id: string) {
   try {
     const data = await sql<InvoiceForm[]>`
@@ -182,7 +175,7 @@ export async function fetchInvoiceById(id: string) {
       WHERE invoices.id = ${id};
     `;
 
-    if (!data || data.length === 0) throw new Error("Invoice not found.");
+    if (!data.length) throw new Error("Invoice not found.");
 
     return {
       ...data[0],
@@ -197,19 +190,18 @@ export async function fetchInvoiceById(id: string) {
 /* ------------------------- All Customers ------------------------- */
 export async function fetchCustomers() {
   try {
-    const data = await sql<CustomerField[]>`
+    return await sql<CustomerField[]>`
       SELECT id, name, email, image_url
       FROM customers
       ORDER BY name ASC;
     `;
-    return data || [];
   } catch (err) {
     console.error("Database Error:", err);
-    throw new Error("Failed to fetch all customers.");
+    throw new Error("Failed to fetch customers.");
   }
 }
 
-/* ------------------------- Filtered Customers ------------------------- */
+/* ------------------------- Filtered Customers (FIXED) ------------------------- */
 export async function fetchFilteredCustomers(query: string) {
   const search = `%${query || ""}%`;
 
@@ -233,12 +225,11 @@ export async function fetchFilteredCustomers(query: string) {
       LIMIT 50;
     `;
 
-    if (!data || data.length === 0) return [];
-
     return data.map((c) => ({
       ...c,
-      total_pending: formatCurrency(c.total_pending),
-      total_paid: formatCurrency(c.total_paid),
+      total_invoices: Number(c.total_invoices) || 0,
+      total_pending: Number(c.total_pending) || 0,
+      total_paid: Number(c.total_paid) || 0,
     }));
   } catch (err) {
     console.error("Database Error:", err);

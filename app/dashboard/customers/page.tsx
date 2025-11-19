@@ -3,36 +3,36 @@ import { formatCustomers } from "@/app/lib/utils";
 import CustomersTable from "./table";
 import Search from "@/app/ui/search";
 
-export default async function CustomersPage({
-  searchParams,
-}: {
-  searchParams?: { query?: string | string[] };
-}) {
+interface Props {
+  searchParams?: {
+    query?: string | string[];
+  };
+}
+
+export default async function CustomersPage({ searchParams }: Props) {
   try {
-    // ✅ Awaited / normalized query
     const query = Array.isArray(searchParams?.query)
       ? searchParams.query[0].trim()
       : searchParams?.query?.trim() || "";
 
-    // ✅ Fetch filtered customers based on the query
+    // Fetch raw data
     const rawCustomers = await fetchFilteredCustomers(query);
 
-    // ✅ Format, deduplicate, and convert numeric fields safely
-    const formattedCustomers = formatCustomers(rawCustomers || [])
-      .filter(
-        (value, index, self) =>
-          index === self.findIndex((c) => c.id === value.id)
-      )
-      .map((c) => ({
-        ...c,
-        total_invoices: Number(c.total_invoices) || 0,
-        total_paid: Number(c.total_paid) || 0,
-        total_pending: Number(c.total_pending) || 0,
-      }));
+    // Convert numeric fields BEFORE formatting
+    const numericCustomers = (rawCustomers || []).map((c) => ({
+      ...c,
+      total_invoices: Number(c.total_invoices) || 0,
+      total_paid: Number(c.total_paid) || 0,
+      total_pending: Number(c.total_pending) || 0,
+    }));
+
+    // Format & clean data
+    const formattedCustomers = formatCustomers(numericCustomers).filter(
+      (value, index, self) => index === self.findIndex((c) => c.id === value.id)
+    );
 
     return (
       <div className="p-6 w-full">
-        {/* Header with search bar */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Customers</h1>
           <Search placeholder="Search customers..." />
@@ -42,7 +42,6 @@ export default async function CustomersPage({
           Below are your current customers and their balances:
         </p>
 
-        {/* Conditional rendering */}
         {formattedCustomers.length > 0 ? (
           <CustomersTable customers={formattedCustomers} />
         ) : (

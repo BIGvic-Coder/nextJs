@@ -32,11 +32,11 @@ export type LatestInvoice = {
   name: string;
   image_url: string;
   email: string;
-  amount: string;
+  amount: string; // formatted
 };
 
 export type LatestInvoiceRaw = Omit<LatestInvoice, "amount"> & {
-  amount: number;
+  amount: number; // raw from DB
 };
 
 export type InvoicesTable = {
@@ -50,7 +50,9 @@ export type InvoicesTable = {
   status: "pending" | "paid";
 };
 
-// ✅ DB row returned by SELECT for customers list
+/* ------------------------- CUSTOMER TYPES ------------------------- */
+
+// Raw DB result - numbers only
 export type CustomerField = {
   id: string;
   name: string;
@@ -58,8 +60,7 @@ export type CustomerField = {
   image_url: string;
 };
 
-// ✅ DB row returned by fetchFilteredCustomers()
-// (includes invoice counts)
+// Raw DB from fetchFilteredCustomers()
 export type CustomersTableType = {
   id: string;
   name: string;
@@ -70,16 +71,18 @@ export type CustomersTableType = {
   total_paid: number;
 };
 
-// ✅ After formatting currency
+// UI formatted values (when needed)
 export type FormattedCustomersTable = {
   id: string;
   name: string;
   email: string;
   image_url: string;
   total_invoices: number;
-  total_pending: string; // changed to string
-  total_paid: string; // changed to string
+  total_pending: number; // NOW NUMBER (not string)
+  total_paid: number; // NOW NUMBER (not string)
 };
+
+/* ------------------------- INVOICE FORM ------------------------- */
 
 export type InvoiceForm = {
   id: string;
