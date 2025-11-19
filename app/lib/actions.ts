@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { supabase } from "@/app/lib/supabaseclient";
+import { supabase } from "@/app/lib/supabaseClient";
 
 // -----------------------------
 // ZOD VALIDATION SCHEMA
