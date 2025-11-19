@@ -1,26 +1,35 @@
 "use client";
 
-import { CustomerField } from "@/app/lib/definitions";
-import Link from "next/link";
+import { CustomerField, InvoiceForm } from "@/app/lib/definitions";
 import {
   CheckIcon,
   ClockIcon,
   CurrencyDollarIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { Button } from "@/app/ui/button";
-import { createInvoice, State } from "@/app/lib/actions";
+import { updateInvoice, State } from "@/app/lib/actions";
 import { useActionState } from "react";
 
-export default function Form({ customers }: { customers: CustomerField[] }) {
+export default function EditInvoiceForm({
+  invoice,
+  customers,
+}: {
+  invoice: InvoiceForm;
+  customers: CustomerField[];
+}) {
   const initialState: State = { message: null, errors: {} };
-  const [state, formAction] = useActionState(createInvoice, initialState);
+  const [state, formAction] = useActionState(updateInvoice, initialState);
 
   return (
-    <form action={formAction}>
-      <div className="rounded-md bg-gray-50 p-6">
-        {/* Customer Name */}
-        <div className="mb-6">
+    <form action={formAction} className="space-y-6">
+      {/* Pass invoice id to server action */}
+      <input type="hidden" name="id" value={invoice.id} />
+
+      <div className="rounded-md bg-gray-50 p-6 space-y-6">
+        {/* Customer Selector */}
+        <div>
           <label htmlFor="customer" className="mb-2 block text-sm font-medium">
             Choose customer
           </label>
@@ -28,8 +37,8 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
             <select
               id="customer"
               name="customerId"
+              defaultValue={invoice.customer_id}
               className="peer block w-full cursor-pointer rounded-md border border-gray-300 py-2 pl-10 text-sm placeholder:text-gray-500 focus:border-gray-900 focus:outline-none"
-              defaultValue=""
               aria-describedby="customer-error"
             >
               <option value="" disabled>
@@ -53,7 +62,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
         </div>
 
         {/* Invoice Amount */}
-        <div className="mb-6">
+        <div>
           <label htmlFor="amount" className="mb-2 block text-sm font-medium">
             Enter amount
           </label>
@@ -63,6 +72,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               name="amount"
               type="number"
               step="0.01"
+              defaultValue={invoice.amount}
               placeholder="Enter USD amount"
               className="peer block w-full rounded-md border border-gray-300 py-2 pl-10 text-sm placeholder:text-gray-500 focus:border-gray-900 focus:outline-none"
               aria-describedby="amount-error"
@@ -79,7 +89,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
         </div>
 
         {/* Invoice Status */}
-        <div className="mb-2">
+        <div>
           <label className="mb-2 block text-sm font-medium">
             Invoice status
           </label>
@@ -89,13 +99,13 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               role="radiogroup"
               aria-describedby="status-error"
             >
-              {/* Pending */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   id="pending"
                   name="status"
                   type="radio"
                   value="pending"
+                  defaultChecked={invoice.status === "pending"}
                   className="h-4 w-4 text-gray-600"
                 />
                 <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
@@ -103,13 +113,13 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
                 </span>
               </label>
 
-              {/* Paid */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   id="paid"
                   name="status"
                   type="radio"
                   value="paid"
+                  defaultChecked={invoice.status === "paid"}
                   className="h-4 w-4 text-green-600"
                 />
                 <span className="flex items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-xs font-medium text-white">
@@ -127,13 +137,15 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
           </div>
         </div>
 
-        {/* Form submission message */}
+        {/* Form-wide message */}
         {state.message && (
-          <p className="mt-4 text-sm text-red-500">{state.message}</p>
+          <p className="mt-4 text-sm text-red-500" role="alert">
+            {state.message}
+          </p>
         )}
       </div>
 
-      {/* Buttons */}
+      {/* Form buttons */}
       <div className="mt-8 flex justify-end gap-4">
         <Link
           href="/dashboard/invoices"
@@ -141,7 +153,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
         >
           Cancel
         </Link>
-        <Button type="submit">Create Invoice</Button>
+        <Button type="submit">Save Changes</Button>
       </div>
     </form>
   );

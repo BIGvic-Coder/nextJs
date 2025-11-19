@@ -6,6 +6,7 @@ import { FormattedCustomersTable } from "@/app/lib/definitions";
 export default function CustomersTable({
   customers,
 }: {
+  mz;
   customers: FormattedCustomersTable[];
 }) {
   if (!customers || customers.length === 0) {
@@ -20,6 +21,7 @@ export default function CustomersTable({
         <thead className="bg-gray-100 text-left text-sm font-semibold">
           <tr>
             <th className="px-4 py-3">Customer</th>
+
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3 text-center">Total Invoices</th>
             <th className="px-4 py-3 text-center">Total Paid</th>
@@ -47,13 +49,13 @@ export default function CustomersTable({
               </td>
               <td className="px-4 py-3 text-gray-700">{customer.email}</td>
               <td className="px-4 py-3 text-center text-gray-800">
-                {customer.total_invoices}
+                {customer.total_invoices.toString()}
               </td>
               <td className="px-4 py-3 text-center text-green-600 font-medium">
-                {customer.total_paid}
+                {customer.total_paid.toString()}
               </td>
               <td className="px-4 py-3 text-center text-yellow-600 font-medium">
-                {customer.total_pending}
+                {customer.total_pending.toString()}
               </td>
             </tr>
           ))}

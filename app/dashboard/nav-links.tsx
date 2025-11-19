@@ -8,7 +8,7 @@ import {
   DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 
-// List of sidebar links
+// Sidebar navigation links
 const links = [
   { name: "Home", href: "/dashboard", icon: HomeIcon },
   {
@@ -16,7 +16,11 @@ const links = [
     href: "/dashboard/invoices",
     icon: DocumentDuplicateIcon,
   },
-  { name: "Customers", href: "/dashboard/customers", icon: UserGroupIcon },
+  {
+    name: "Customers",
+    href: "/dashboard/customers",
+    icon: UserGroupIcon,
+  },
 ];
 
 export default function NavLinks() {

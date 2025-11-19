@@ -27,9 +27,15 @@ export const formatDateToLocal = (
   return formatter.format(date);
 };
 
-// ✅ Build chart Y-axis
-export const generateYAxis = (revenue: Revenue[]) => {
-  const yAxisLabels = [];
+// ✅ Build chart Y-axis (safe version — prevents "map of undefined" error)
+export const generateYAxis = (revenue: Revenue[] = []) => {
+  const yAxisLabels: string[] = [];
+
+  // Handle missing or empty revenue data safely
+  if (!Array.isArray(revenue) || revenue.length === 0) {
+    return { yAxisLabels: ["$0K"], topLabel: 0 };
+  }
+
   const highestRecord = Math.max(...revenue.map((month) => month.revenue));
   const topLabel = Math.ceil(highestRecord / 1000) * 1000;
 
@@ -62,7 +68,6 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
   ];
 };
 
-// ✅ Correct formatter for fetched customer rows
 // ✅ Correct formatter for fetched customer rows
 export function formatCustomers(
   rows: CustomersTableType[]

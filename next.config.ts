@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // experimental: {
+  //   ppr: true, // ✅ Enable Partial Prerendering
+  // },
 };
 
 export default nextConfig;
