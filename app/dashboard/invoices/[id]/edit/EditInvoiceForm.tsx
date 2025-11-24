@@ -25,9 +25,12 @@ export default function EditInvoiceForm({
   const [state, setState] = useState<State>(initialState);
 
   const formAction = async (formData: FormData) => {
-    // Pass current state to match your actions.ts signature
-    const result = await updateInvoice(state, formData);
-    setState(result);
+    try {
+      const result = await updateInvoice(state, formData);
+      setState(result);
+    } catch (err) {
+      setState({ ...state, message: "Failed to update invoice." });
+    }
   };
 
   return (
@@ -50,7 +53,7 @@ export default function EditInvoiceForm({
           <select
             id="customerId"
             name="customerId"
-            defaultValue={invoice.customer_id}
+            defaultValue={invoice.customer_id || ""}
             className="peer block w-full cursor-pointer rounded-md border border-gray-300 py-2 pl-10 text-sm placeholder:text-gray-500 focus:border-gray-900 focus:outline-none"
             aria-describedby="customer-error"
           >
@@ -63,7 +66,7 @@ export default function EditInvoiceForm({
               </option>
             ))}
           </select>
-          <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 w-[18px] h-[18px] -translate-y-1/2 text-gray-500" />
+          <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 w-5 h-5 -translate-y-1/2 text-gray-500" />
         </div>
         <div id="customer-error" aria-live="polite">
           {state.errors?.customerId?.map((err) => (
@@ -85,12 +88,12 @@ export default function EditInvoiceForm({
             name="amount"
             type="number"
             step="0.01"
-            defaultValue={invoice.amount}
+            defaultValue={invoice.amount || ""}
             placeholder="Enter USD amount"
             className="peer block w-full rounded-md border border-gray-300 py-2 pl-10 text-sm placeholder:text-gray-500 focus:border-gray-900 focus:outline-none"
             aria-describedby="amount-error"
           />
-          <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 w-[18px] h-[18px] -translate-y-1/2 text-gray-500" />
+          <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 w-5 h-5 -translate-y-1/2 text-gray-500" />
         </div>
         <div id="amount-error" aria-live="polite">
           {state.errors?.amount?.map((err) => (
