@@ -1,12 +1,15 @@
-"use client";
+"use client"; // ✅ Add this at the very top
 
-import { useState } from "react";
-import { supabase } from "@/app/lib/supabaseClient";
+import { useEffect, useState } from "react"; // ✅ include useState
+import { useRouter } from "next/navigation"; // Next.js 13+ app router
+import { supabase } from "@/app/lib/supabaseClient"; // make sure you have this import
 
 export default function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -22,9 +25,14 @@ export default function LoginForm() {
       return;
     }
 
-    // redirect after login
-    window.location.href = "/dashboard";
+    setLoggedIn(true);
   }
+
+  useEffect(() => {
+    if (loggedIn) {
+      router.push("/dashboard");
+    }
+  }, [loggedIn, router]);
 
   return (
     <form
@@ -32,7 +40,6 @@ export default function LoginForm() {
       className="w-full max-w-sm mx-auto mt-10 p-6 bg-white shadow-md rounded"
     >
       <h2 className="text-2xl font-bold mb-4">Login</h2>
-
       {error && <p className="text-red-600 mb-2">{error}</p>}
 
       <input
