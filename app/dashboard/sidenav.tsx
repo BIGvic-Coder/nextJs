@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import NavLinks from "../ui/dashboard/nav-links";
+import NavLinks from "../dashboard/nav-links"; // ← FIXED
 import AcmeLogo from "../ui/acme-logo";
 import { PowerIcon } from "@heroicons/react/24/outline";
 import { supabase } from "../lib/supabaseClient";
@@ -10,7 +10,6 @@ import { supabase } from "../lib/supabaseClient";
 export default function SideNav() {
   const router = useRouter();
 
-  // ✅ Handle logout
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/login");

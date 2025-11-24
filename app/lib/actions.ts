@@ -5,26 +5,32 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 
-// -----------------------------
+// ---------------------------------------------
 // ZOD VALIDATION SCHEMA
-// -----------------------------
+// ---------------------------------------------
 const InvoiceSchema = z.object({
   id: z.string().optional(),
   customerId: z
     .string({
-      invalid_type_error: "Please select a customer.",
       required_error: "Customer is required.",
+      invalid_type_error: "Please select a customer.",
     })
     .min(1, "Please select a customer."),
   amount: z.coerce
-    .number()
+    .number({
+      required_error: "Amount is required.",
+      invalid_type_error: "Amount must be a number.",
+    })
     .gt(0, { message: "Please enter an amount greater than $0." }),
   status: z.enum(["pending", "paid"], {
+    required_error: "Status is required.",
     invalid_type_error: "Please select an invoice status.",
   }),
 });
 
-// Result type returned to the client form
+// ---------------------------------------------
+// TYPE EXPORTED TO CLIENT COMPONENT
+// ---------------------------------------------
 export type State = {
   errors?: {
     customerId?: string[];
@@ -34,9 +40,9 @@ export type State = {
   message?: string | null;
 };
 
-// --------------------------------------------------
+// ---------------------------------------------
 // CREATE INVOICE
-// --------------------------------------------------
+// ---------------------------------------------
 export async function createInvoice(prevState: State, formData: FormData) {
   const validated = InvoiceSchema.safeParse({
     customerId: formData.get("customerId"),
@@ -63,15 +69,19 @@ export async function createInvoice(prevState: State, formData: FormData) {
     date,
   });
 
-  if (error) return { message: "Database Error: Failed to create invoice." };
+  if (error) {
+    return {
+      message: "Database Error: Failed to create invoice.",
+    };
+  }
 
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
 }
 
-// --------------------------------------------------
+// ---------------------------------------------
 // UPDATE INVOICE
-// --------------------------------------------------
+// ---------------------------------------------
 export async function updateInvoice(prevState: State, formData: FormData) {
   const validated = InvoiceSchema.safeParse({
     id: formData.get("id"),
@@ -89,6 +99,10 @@ export async function updateInvoice(prevState: State, formData: FormData) {
 
   const { id, customerId, amount, status } = validated.data;
 
+  if (!id) {
+    return { message: "Missing invoice ID." };
+  }
+
   const { error } = await supabase
     .from("invoices")
     .update({
@@ -99,7 +113,9 @@ export async function updateInvoice(prevState: State, formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    return { message: "Database Error: Failed to update invoice." };
+    return {
+      message: "Database Error: Failed to update invoice.",
+    };
   }
 
   revalidatePath("/dashboard/invoices");

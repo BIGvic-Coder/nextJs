@@ -1,5 +1,4 @@
-// This file contains type definitions for your data.
-
+/* ------------------------- USER ------------------------- */
 export type User = {
   id: string;
   name: string;
@@ -7,6 +6,7 @@ export type User = {
   password: string;
 };
 
+/* ------------------------- CUSTOMER BASE ------------------------- */
 export type Customer = {
   id: string;
   name: string;
@@ -14,6 +14,7 @@ export type Customer = {
   image_url: string;
 };
 
+/* ------------------------- INVOICES ------------------------- */
 export type Invoice = {
   id: string;
   customer_id: string;
@@ -22,23 +23,28 @@ export type Invoice = {
   status: "pending" | "paid";
 };
 
+/* ------------------------- REVENUE ------------------------- */
 export type Revenue = {
   month: string;
   revenue: number;
 };
 
+/* ------------------------- LATEST INVOICE TYPES ------------------------- */
 export type LatestInvoice = {
   id: string;
   name: string;
   image_url: string;
   email: string;
   amount: string; // formatted
+  date: string;
 };
 
 export type LatestInvoiceRaw = Omit<LatestInvoice, "amount"> & {
   amount: number; // raw from DB
+  date: string;
 };
 
+/* ------------------------- TABLE ROW FOR INVOICES ------------------------- */
 export type InvoicesTable = {
   id: string;
   customer_id: string;
@@ -50,9 +56,7 @@ export type InvoicesTable = {
   status: "pending" | "paid";
 };
 
-/* ------------------------- CUSTOMER TYPES ------------------------- */
-
-// Raw DB result - numbers only
+/* ------------------------- CUSTOMER TABLE TYPES ------------------------- */
 export type CustomerField = {
   id: string;
   name: string;
@@ -60,7 +64,6 @@ export type CustomerField = {
   image_url: string;
 };
 
-// Raw DB from fetchFilteredCustomers()
 export type CustomersTableType = {
   id: string;
   name: string;
@@ -71,22 +74,32 @@ export type CustomersTableType = {
   total_paid: number;
 };
 
-// UI formatted values (when needed)
 export type FormattedCustomersTable = {
   id: string;
   name: string;
   email: string;
   image_url: string;
   total_invoices: number;
-  total_pending: number; // NOW NUMBER (not string)
-  total_paid: number; // NOW NUMBER (not string)
+  total_pending: number;
+  total_paid: number;
 };
 
 /* ------------------------- INVOICE FORM ------------------------- */
-
 export type InvoiceForm = {
   id: string;
   customer_id: string;
   amount: number;
   status: "pending" | "paid";
 };
+
+/* ------------------------- DYNAMIC INVOICE PAGE PROPS ------------------------- */
+export interface InvoicePageProps {
+  params: { id: string }; // [id] route
+}
+
+/* ------------------------- OPTIONAL HELPER TYPES ------------------------- */
+/**
+ * Use these types in your pages:
+ * CustomersPageProps: { searchParams?: { query?: string | string[] } }
+ * InvoiceEditPageProps: InvoicePageProps
+ */

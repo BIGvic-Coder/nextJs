@@ -1,5 +1,3 @@
-// console.log("DEBUG POSTGRES_URL:", process.env.POSTGRES_URL);
-
 import postgres from "postgres";
 import {
   CustomerField,
@@ -33,7 +31,7 @@ if (process.env.NODE_ENV !== "production") {
 const ITEMS_PER_PAGE = 6;
 
 /* ------------------------- Fetch Revenue ------------------------- */
-export async function fetchRevenue() {
+export async function fetchRevenue(): Promise<Revenue[]> {
   try {
     const data = await sql<Revenue[]>`
       SELECT * FROM revenue ORDER BY month ASC;
@@ -46,7 +44,7 @@ export async function fetchRevenue() {
 }
 
 /* ------------------------- Latest Invoices ------------------------- */
-export async function fetchLatestInvoices() {
+export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
   try {
     const data = await sql<LatestInvoiceRaw[]>`
       SELECT
@@ -63,7 +61,6 @@ export async function fetchLatestInvoices() {
       ORDER BY invoices.date DESC
       LIMIT 5;
     `;
-
     return data.map((invoice) => ({
       ...invoice,
       amount: Number(invoice.amount),
@@ -76,12 +73,17 @@ export async function fetchLatestInvoices() {
 }
 
 /* ------------------------- Dashboard Stats ------------------------- */
-export async function fetchCardData() {
+export async function fetchCardData(): Promise<{
+  numberOfInvoices: number;
+  numberOfCustomers: number;
+  totalPaidInvoices: string;
+  totalPendingInvoices: string;
+}> {
   try {
     const [invoiceCount, customerCount, invoiceStatus] = await Promise.all([
-      sql`SELECT COUNT(*) AS count FROM invoices;`,
-      sql`SELECT COUNT(*) AS count FROM customers;`,
-      sql`
+      sql<{ count: string }[]>`SELECT COUNT(*) AS count FROM invoices;`,
+      sql<{ count: string }[]>`SELECT COUNT(*) AS count FROM customers;`,
+      sql<{ paid: string; pending: string }[]>`
         SELECT
           SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS paid,
           SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS pending
@@ -92,8 +94,10 @@ export async function fetchCardData() {
     return {
       numberOfInvoices: Number(invoiceCount?.[0]?.count ?? 0),
       numberOfCustomers: Number(customerCount?.[0]?.count ?? 0),
-      totalPaidInvoices: formatCurrency(invoiceStatus?.[0]?.paid ?? 0),
-      totalPendingInvoices: formatCurrency(invoiceStatus?.[0]?.pending ?? 0),
+      totalPaidInvoices: formatCurrency(Number(invoiceStatus?.[0]?.paid ?? 0)),
+      totalPendingInvoices: formatCurrency(
+        Number(invoiceStatus?.[0]?.pending ?? 0)
+      ),
     };
   } catch (error) {
     console.error("Database Error:", error);
@@ -105,7 +109,7 @@ export async function fetchCardData() {
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number
-) {
+): Promise<InvoicesTable[]> {
   const safePage =
     Number.isFinite(currentPage) && currentPage > 0 ? currentPage : 1;
   const offset = (safePage - 1) * ITEMS_PER_PAGE;
@@ -139,11 +143,11 @@ export async function fetchFilteredInvoices(
 }
 
 /* ------------------------- Invoice Count ------------------------- */
-export async function fetchInvoicesPages(query: string) {
+export async function fetchInvoicesPages(query: string): Promise<number> {
   const search = `%${query || ""}%`;
 
   try {
-    const data = await sql`
+    const data = await sql<{ count: string }[]>`
       SELECT COUNT(*) AS count
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
@@ -163,7 +167,7 @@ export async function fetchInvoicesPages(query: string) {
 }
 
 /* ------------------------- Single Invoice By ID ------------------------- */
-export async function fetchInvoiceById(id: string) {
+export async function fetchInvoiceById(id: string): Promise<InvoiceForm> {
   try {
     const data = await sql<InvoiceForm[]>`
       SELECT
@@ -179,7 +183,7 @@ export async function fetchInvoiceById(id: string) {
 
     return {
       ...data[0],
-      amount: data[0].amount / 100,
+      amount: Number(data[0].amount) / 100,
     };
   } catch (error) {
     console.error("Database Error:", error);
@@ -188,7 +192,7 @@ export async function fetchInvoiceById(id: string) {
 }
 
 /* ------------------------- All Customers ------------------------- */
-export async function fetchCustomers() {
+export async function fetchCustomers(): Promise<CustomerField[]> {
   try {
     return await sql<CustomerField[]>`
       SELECT id, name, email, image_url
@@ -201,8 +205,10 @@ export async function fetchCustomers() {
   }
 }
 
-/* ------------------------- Filtered Customers (FIXED) ------------------------- */
-export async function fetchFilteredCustomers(query: string) {
+/* ------------------------- Filtered Customers ------------------------- */
+export async function fetchFilteredCustomers(
+  query: string
+): Promise<CustomersTableType[]> {
   const search = `%${query || ""}%`;
 
   try {

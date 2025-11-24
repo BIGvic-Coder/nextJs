@@ -4,7 +4,7 @@ import {
   FormattedCustomersTable,
 } from "./definitions";
 
-// ✅ Format cents → USD
+// ✅ Format cents → USD (use for display only)
 export const formatCurrency = (amount: number) => {
   return (amount / 100).toLocaleString("en-US", {
     style: "currency",
@@ -27,11 +27,10 @@ export const formatDateToLocal = (
   return formatter.format(date);
 };
 
-// ✅ Build chart Y-axis (safe version — prevents "map of undefined" error)
+// ✅ Build chart Y-axis safely
 export const generateYAxis = (revenue: Revenue[] = []) => {
   const yAxisLabels: string[] = [];
 
-  // Handle missing or empty revenue data safely
   if (!Array.isArray(revenue) || revenue.length === 0) {
     return { yAxisLabels: ["$0K"], topLabel: 0 };
   }
@@ -68,23 +67,17 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
   ];
 };
 
-// ✅ Correct formatter for fetched customer rows
+// ✅ Correct formatter for fetched customer rows — returns numbers
 export function formatCustomers(
   rows: CustomersTableType[]
 ): FormattedCustomersTable[] {
-  return rows.map((row) => {
-    // Ensure values are valid numbers before formatting
-    const pending = Number(row.total_pending) || 0;
-    const paid = Number(row.total_paid) || 0;
-
-    return {
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      image_url: row.image_url,
-      total_invoices: row.total_invoices ?? 0,
-      total_pending: formatCurrency(pending),
-      total_paid: formatCurrency(paid),
-    };
-  });
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    image_url: row.image_url,
+    total_invoices: row.total_invoices ?? 0,
+    total_pending: Number(row.total_pending) || 0, // keep as number
+    total_paid: Number(row.total_paid) || 0, // keep as number
+  }));
 }

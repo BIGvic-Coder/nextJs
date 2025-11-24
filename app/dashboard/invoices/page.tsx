@@ -53,7 +53,8 @@ export default async function InvoicesPage(props: {
 
       {/* PAGINATION */}
       <div className="mt-8 flex justify-center">
-        <Pagination totalPages={totalPages} />
+        {/* 👇 FIXED: Added currentPage */}
+        <Pagination totalPages={totalPages} currentPage={currentPage} />
       </div>
     </div>
   );

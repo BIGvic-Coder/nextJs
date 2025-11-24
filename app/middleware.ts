@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
-export function middleware(req) {
+export function middleware(req: NextRequest) {
   const token = req.cookies.get("sb-access-token");
 
   if (!token && req.nextUrl.pathname.startsWith("/dashboard")) {

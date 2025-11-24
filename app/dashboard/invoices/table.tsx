@@ -5,7 +5,7 @@ import InvoiceStatus from "@/app/dashboard/invoices/status";
 
 interface Invoice {
   id: string;
-  customer: string;
+  name: string;
   email: string;
   amount: number;
   date: string;
@@ -19,7 +19,8 @@ export default async function Table({
   query: string;
   currentPage: number;
 }) {
-  const invoices: Invoice[] = await fetchFilteredInvoices(query, currentPage);
+  // Let TypeScript infer the DB type
+  const invoices = await fetchFilteredInvoices(query, currentPage);
 
   return (
     <div className="mt-6 flow-root">
@@ -28,13 +29,14 @@ export default async function Table({
           {invoices.length === 0 ? (
             <p className="text-sm text-gray-500 p-4">No invoices found.</p>
           ) : (
-            invoices.map((invoice) => (
+            invoices.map((invoice: Invoice) => (
               <div
                 key={invoice.id}
                 className="mb-2 flex items-center justify-between border-b border-gray-200 pb-2"
               >
                 <div>
-                  <p className="font-medium">{invoice.customer}</p>
+                  {/* Display Customer Name & Email */}
+                  <p className="font-medium">{invoice.name}</p>
                   <p className="text-sm text-gray-500">{invoice.email}</p>
                 </div>
 
