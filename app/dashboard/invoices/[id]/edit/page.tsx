@@ -4,17 +4,15 @@ import EditInvoiceForm from "./EditInvoiceForm";
 import { fetchInvoiceById, fetchCustomers } from "@/app/lib/data";
 import type { InvoiceForm, CustomerField } from "@/app/lib/definitions";
 
-interface PageParams {
-  id: string;
-  [key: string]: string | string[];
+// Correct Next.js typing
+interface PageProps {
+  params: {
+    id: string;
+  };
 }
 
-export default async function EditInvoicePage({
-  params,
-}: {
-  params: PageParams;
-}) {
-  const id = params.id;
+export default async function EditInvoicePage({ params }: PageProps) {
+  const { id } = params;
 
   if (!id) return notFound();
 
@@ -24,7 +22,6 @@ export default async function EditInvoicePage({
     fetchCustomers().catch(() => [] as CustomerField[]),
   ]);
 
-  // Invoice not found → 404
   if (!invoice) return notFound();
 
   return (
