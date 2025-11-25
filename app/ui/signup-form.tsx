@@ -34,9 +34,7 @@ export default function SignupForm() {
         type="email"
         placeholder="Email"
         value={email}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setEmail(e.target.value)
-        }
+        onChange={(e) => setEmail(e.target.value)}
         className="w-full mb-3 p-2 border rounded"
         required
       />
@@ -45,9 +43,7 @@ export default function SignupForm() {
         type="password"
         placeholder="Password"
         value={password}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setPassword(e.target.value)
-        }
+        onChange={(e) => setPassword(e.target.value)}
         className="w-full mb-3 p-2 border rounded"
         required
       />

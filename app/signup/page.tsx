@@ -1,4 +1,11 @@
-import SignupForm from "@/app/ui/signup-form";
+"use client"; // must be first line
+
+import dynamic from "next/dynamic";
+
+// Dynamically import SignupForm so it only renders on the client
+const SignupForm = dynamic(() => import("@/app/ui/signup-form"), {
+  ssr: false,
+});
 
 export default function SignupPage() {
   return (
