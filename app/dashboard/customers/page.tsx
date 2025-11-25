@@ -3,13 +3,14 @@ import CustomersTable from "./table";
 import { fetchFilteredCustomers } from "@/app/lib/data";
 import type { FormattedCustomersTable } from "@/app/lib/definitions";
 
-export default async function CustomersPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ query?: string }>;
-}) {
-  const resolved = await searchParams;
-  const query = resolved?.query || "";
+export default async function CustomersPage({ searchParams }: any) {
+  const queryRaw = searchParams?.query;
+  const query =
+    typeof queryRaw === "string"
+      ? queryRaw.trim()
+      : Array.isArray(queryRaw)
+      ? queryRaw.join(" ").trim()
+      : "";
 
   const customers: FormattedCustomersTable[] = await fetchFilteredCustomers(
     query

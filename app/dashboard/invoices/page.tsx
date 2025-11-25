@@ -1,4 +1,3 @@
-// app/dashboard/invoices/page.tsx
 import { Suspense } from "react";
 import { lusitana } from "@/app/ui/fonts";
 import Search from "@/app/ui/search";
@@ -6,24 +5,20 @@ import Pagination from "@/app/ui/invoices/pagination";
 import Table from "@/app/ui/invoices/table";
 import { fetchFilteredInvoices, fetchInvoicesPages } from "@/app/lib/data";
 
-export const metadata = {
-  title: "Invoices",
-};
+export const metadata = { title: "Invoices" };
 
-export default async function InvoicesPage(props: {
-  searchParams: Promise<{ query?: string; page?: string }>;
-}) {
-  // ✅ Await searchParams before using it
-  const searchParams = await props.searchParams;
+export default async function InvoicesPage({ searchParams }: any) {
+  const queryRaw = searchParams?.query;
+  const query =
+    typeof queryRaw === "string"
+      ? queryRaw.trim()
+      : Array.isArray(queryRaw)
+      ? queryRaw.join(" ").trim()
+      : "";
 
-  // ✅ Normalize query
-  const query = searchParams?.query?.trim() ?? "";
-
-  // ✅ Normalize page
   const pageRaw = Number(searchParams?.page);
   const currentPage = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
 
-  // ✅ Fetch invoices and total pages concurrently
   const [invoices, totalPages] = await Promise.all([
     fetchFilteredInvoices(query, currentPage),
     fetchInvoicesPages(query),
@@ -53,7 +48,6 @@ export default async function InvoicesPage(props: {
 
       {/* PAGINATION */}
       <div className="mt-8 flex justify-center">
-        {/* 👇 FIXED: Added currentPage */}
         <Pagination totalPages={totalPages} currentPage={currentPage} />
       </div>
     </div>

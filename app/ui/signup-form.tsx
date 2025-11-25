@@ -4,17 +4,24 @@ import { useState } from "react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function SignupForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
-  const handleSignup = async (e) => {
+  // Properly typed form submit event
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-    if (error) return setError(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
+      return;
+    }
 
     alert("Signup successful! Check your email to verify your account.");
     window.location.href = "/login";
@@ -31,7 +38,10 @@ export default function SignupForm() {
         type="email"
         placeholder="Email"
         className="w-full mb-3 p-2 border rounded"
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setEmail(e.target.value)
+        }
+        value={email}
         required
       />
 
@@ -39,13 +49,19 @@ export default function SignupForm() {
         type="password"
         placeholder="Password"
         className="w-full mb-3 p-2 border rounded"
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setPassword(e.target.value)
+        }
+        value={password}
         required
       />
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      <button className="w-full bg-green-600 text-white py-2 rounded mt-3">
+      <button
+        type="submit"
+        className="w-full bg-green-600 text-white py-2 rounded mt-3"
+      >
         Sign Up
       </button>
 
