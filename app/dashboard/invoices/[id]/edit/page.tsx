@@ -1,22 +1,17 @@
-// app/invoices/[id]/page.tsx
 import { notFound } from "next/navigation";
 import EditInvoiceForm from "./EditInvoiceForm";
 import { fetchInvoiceById, fetchCustomers } from "@/app/lib/data";
-import type { InvoiceForm, CustomerField } from "@/app/lib/definitions";
+import type { CustomerField, InvoiceForm } from "@/app/lib/definitions";
 
-// Correct Next.js typing
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function EditInvoicePage({ params }: PageProps) {
+export default async function EditInvoicePage({
+  params,
+}: {
+  params: { id: string };
+}): Promise<JSX.Element> {
   const { id } = params;
 
   if (!id) return notFound();
 
-  // Fetch invoice + customers
   const [invoice, customers] = await Promise.all([
     fetchInvoiceById(id).catch(() => null),
     fetchCustomers().catch(() => [] as CustomerField[]),
