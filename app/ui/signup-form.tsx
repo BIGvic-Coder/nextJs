@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function SignupForm() {
+  const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -23,8 +25,8 @@ export default function SignupForm() {
       return;
     }
 
-    alert("Signup successful! Check your email to verify your account.");
-    window.location.href = "/login";
+    // Navigate to login page safely
+    router.push("/login");
   };
 
   return (
@@ -38,10 +40,10 @@ export default function SignupForm() {
         type="email"
         placeholder="Email"
         className="w-full mb-3 p-2 border rounded"
+        value={email}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           setEmail(e.target.value)
         }
-        value={email}
         required
       />
 
@@ -49,10 +51,10 @@ export default function SignupForm() {
         type="password"
         placeholder="Password"
         className="w-full mb-3 p-2 border rounded"
+        value={password}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           setPassword(e.target.value)
         }
-        value={password}
         required
       />
 
