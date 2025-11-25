@@ -1,19 +1,14 @@
 import EditInvoiceForm from "../EditInvoiceForm";
-import { InvoiceForm } from "@/app/lib/definitions";
+import type { InvoiceForm } from "@/app/lib/definitions";
 
-// Fetch invoice by ID
-async function fetchInvoice(id: string): Promise<InvoiceForm> {
-  return {
-    id,
-    customer_id: "123",
-    amount: 100,
-    status: "pending", // ✅ typed correctly
-  };
-}
+// Params MUST be typed as a Promise for Next.js
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
 
-// Async page component
-export default async function EditInvoicePage({ params }: any) {
-  const id = params?.id as string;
+export default async function EditInvoicePage({ params }: PageProps) {
+  const { id } = await params;
+
   const invoice = await fetchInvoice(id);
 
   return (
@@ -24,8 +19,21 @@ export default async function EditInvoicePage({ params }: any) {
   );
 }
 
-// Optional metadata
-export async function generateMetadata({ params }: any) {
-  const id = params?.id as string;
-  return { title: `Edit Invoice ${id}` };
+// Fake DB call
+async function fetchInvoice(id: string): Promise<InvoiceForm> {
+  return {
+    id,
+    customer_id: "123",
+    amount: 100,
+    status: "pending",
+  };
+}
+
+// generateMetadata MUST use the same async params type
+export async function generateMetadata({ params }: PageProps) {
+  const { id } = await params;
+
+  return {
+    title: `Edit Invoice ${id}`,
+  };
 }
