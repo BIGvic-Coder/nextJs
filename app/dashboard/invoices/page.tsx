@@ -1,3 +1,5 @@
+export const runtime = "nodejs"; // ✅ Node runtime for Vercel
+
 import { Suspense } from "react";
 import { lusitana } from "@/app/ui/fonts";
 import Search from "@/app/ui/search";
@@ -8,6 +10,7 @@ import { fetchFilteredInvoices, fetchInvoicesPages } from "@/app/lib/data";
 export default async function InvoicesPage(props: {
   searchParams?: Promise<Record<string, string | string[]>>;
 }) {
+  // Await the promise so Vercel can handle server-side runtime
   const resolved = await props.searchParams;
 
   const queryRaw = resolved?.query;
