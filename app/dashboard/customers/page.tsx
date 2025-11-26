@@ -26,20 +26,25 @@
 
 // app/dashboard/customers/page.tsx
 
-export const runtime = "nodejs"; // ✅ Node runtime for Vercel
+// app/dashboard/customers/page.tsx
+
+export const runtime = "nodejs"; // Required for server DB calls on Vercel
+export const dynamic = "force-dynamic"; // Prevents Next.js from executing DB calls during build
 
 import CustomersTable from "./table";
 import { fetchFilteredCustomers } from "@/app/lib/data";
 import type { FormattedCustomersTable } from "@/app/lib/definitions";
 
 export default async function CustomersPage(props: {
-  searchParams?: Promise<Record<string, string | string[]>>; // Must stay a Promise
+  searchParams?: Promise<Record<string, string | string[]>>;
 }) {
-  const resolved = await props.searchParams; // await the promise
+  // Resolve search params (Next.js passes them as a Promise)
+  const resolved = await props.searchParams;
 
   const queryRaw = resolved?.query;
   const query = Array.isArray(queryRaw) ? queryRaw[0] : queryRaw ?? "";
 
+  // Fetch customers (runs ONLY at request time, not build time)
   const customers: FormattedCustomersTable[] = await fetchFilteredCustomers(
     query
   );
