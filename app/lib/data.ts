@@ -1,4 +1,5 @@
-import postgres from "postgres";
+// app/lib/data.ts
+import { supabaseServer } from "./supabase-server";
 import {
   CustomerField,
   CustomersTableType,
@@ -9,99 +10,53 @@ import {
 } from "./definitions";
 import { formatCurrency } from "./utils";
 
-/**
- * ✅ GLOBAL SQL SINGLETON (Fixes Supabase pool limit)
- */
-declare global {
-  var __sql: ReturnType<typeof postgres> | undefined;
-}
-
-export const sql =
-  global.__sql ||
-  (global.__sql = postgres(process.env.POSTGRES_URL!, {
-    ssl: "require",
-    max: 5,
-    prepare: false,
-  }));
-
-if (process.env.NODE_ENV !== "production") {
-  global.__sql = sql;
-}
-
 const ITEMS_PER_PAGE = 6;
 
 /* ------------------------- Fetch Revenue ------------------------- */
 export async function fetchRevenue(): Promise<Revenue[]> {
-  try {
-    const data = await sql<Revenue[]>`
-      SELECT * FROM revenue ORDER BY month ASC;
-    `;
-    return data || [];
-  } catch (error) {
+  const { data, error } = await supabaseServer
+    .from("revenue")
+    .select("*")
+    .order("month", { ascending: true });
+
+  if (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch revenue data.");
   }
+
+  return data || [];
 }
 
 /* ------------------------- Latest Invoices ------------------------- */
 export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
-  try {
-    const data = await sql<LatestInvoiceRaw[]>`
-      SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      INNER JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5;
-    `;
-    return data.map((invoice) => ({
-      ...invoice,
-      amount: Number(invoice.amount),
-      date: new Date(invoice.date).toISOString(),
-    }));
-  } catch (error) {
+  const { data, error } = await supabaseServer
+    .from("invoices")
+    .select(
+      `
+      id,
+      amount,
+      date,
+      status,
+      customers:customer_id (name, email, image_url)
+    `
+    )
+    .order("date", { ascending: false })
+    .limit(5);
+
+  if (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch latest invoices.");
   }
-}
 
-/* ------------------------- Dashboard Stats ------------------------- */
-export async function fetchCardData(): Promise<{
-  numberOfInvoices: number;
-  numberOfCustomers: number;
-  totalPaidInvoices: string;
-  totalPendingInvoices: string;
-}> {
-  try {
-    const [invoiceCount, customerCount, invoiceStatus] = await Promise.all([
-      sql<{ count: string }[]>`SELECT COUNT(*) AS count FROM invoices;`,
-      sql<{ count: string }[]>`SELECT COUNT(*) AS count FROM customers;`,
-      sql<{ paid: string; pending: string }[]>`
-        SELECT
-          SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS paid,
-          SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS pending
-        FROM invoices;
-      `,
-    ]);
-
-    return {
-      numberOfInvoices: Number(invoiceCount?.[0]?.count ?? 0),
-      numberOfCustomers: Number(customerCount?.[0]?.count ?? 0),
-      totalPaidInvoices: formatCurrency(Number(invoiceStatus?.[0]?.paid ?? 0)),
-      totalPendingInvoices: formatCurrency(
-        Number(invoiceStatus?.[0]?.pending ?? 0)
-      ),
-    };
-  } catch (error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to fetch dashboard data.");
-  }
+  return (data || []).map((inv: any) => ({
+    id: inv.id,
+    amount: Number(inv.amount),
+    date: new Date(inv.date).toISOString(),
+    status: inv.status,
+    name: inv.customers?.name,
+    email: inv.customers?.email,
+    image_url: inv.customers?.image_url,
+  }));
 }
 
 /* ------------------------- Filtered Invoices ------------------------- */
@@ -109,134 +64,184 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number
 ): Promise<InvoicesTable[]> {
-  const safePage =
-    Number.isFinite(currentPage) && currentPage > 0 ? currentPage : 1;
-  const offset = (safePage - 1) * ITEMS_PER_PAGE;
-  const search = `%${query || ""}%`;
+  const safePage = currentPage > 0 ? currentPage : 1;
+  const from = (safePage - 1) * ITEMS_PER_PAGE;
+  const to = from + ITEMS_PER_PAGE - 1;
 
-  try {
-    return await sql<InvoicesTable[]>`
-      SELECT DISTINCT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${search} OR
-        customers.email ILIKE ${search} OR
-        invoices.amount::text ILIKE ${search} OR
-        invoices.date::text ILIKE ${search} OR
-        invoices.status ILIKE ${search}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset};
-    `;
-  } catch (error) {
+  const filter = `%${query}%`;
+
+  const { data, error } = await supabaseServer
+    .from("invoices")
+    .select(
+      `
+      id,
+      customer_id,
+      amount,
+      date,
+      status,
+      customers:customer_id (name, email, image_url)
+    `
+    )
+    .or(
+      `
+      customers.name.ilike.${filter},
+      customers.email.ilike.${filter},
+      amount::text.ilike.${filter},
+      status.ilike.${filter}
+    `
+    )
+    .range(from, to)
+    .order("date", { ascending: false });
+
+  if (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch invoices.");
   }
+
+  return (data || []).map((inv: any) => ({
+    id: inv.id,
+    customer_id: inv.customer_id,
+    amount: Number(inv.amount),
+    date: inv.date,
+    status: inv.status,
+    name: inv.customers?.name,
+    email: inv.customers?.email,
+    image_url: inv.customers?.image_url,
+  }));
 }
 
 /* ------------------------- Invoice Count ------------------------- */
 export async function fetchInvoicesPages(query: string): Promise<number> {
-  const search = `%${query || ""}%`;
+  const filter = `%${query}%`;
 
-  try {
-    const data = await sql<{ count: string }[]>`
-      SELECT COUNT(*) AS count
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${search} OR
-        customers.email ILIKE ${search} OR
-        invoices.amount::text ILIKE ${search} OR
-        invoices.date::text ILIKE ${search} OR
-        invoices.status ILIKE ${search};
-    `;
-    return Math.ceil(Number(data?.[0]?.count ?? 0) / ITEMS_PER_PAGE);
-  } catch (error) {
+  const { count, error } = await supabaseServer
+    .from("invoices")
+    .select("id", { count: "exact" })
+    .or(
+      `
+      customers.name.ilike.${filter},
+      customers.email.ilike.${filter},
+      amount::text.ilike.${filter},
+      status.ilike.${filter}
+    `
+    );
+
+  if (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch total invoice count.");
   }
+
+  return Math.ceil((count || 0) / ITEMS_PER_PAGE);
 }
 
 /* ------------------------- Single Invoice By ID ------------------------- */
 export async function fetchInvoiceById(id: string): Promise<InvoiceForm> {
-  try {
-    const data = await sql<InvoiceForm[]>`
-      SELECT
-        invoices.id,
-        invoices.customer_id,
-        invoices.amount,
-        invoices.status
-      FROM invoices
-      WHERE invoices.id = ${id};
-    `;
+  const { data, error } = await supabaseServer
+    .from("invoices")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-    if (!data.length) throw new Error("Invoice not found.");
-
-    return {
-      ...data[0],
-      amount: Number(data[0].amount) / 100,
-    };
-  } catch (error) {
+  if (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch invoice.");
   }
+
+  return {
+    ...data,
+    amount: Number(data.amount) / 100,
+  };
 }
 
 /* ------------------------- All Customers ------------------------- */
 export async function fetchCustomers(): Promise<CustomerField[]> {
-  try {
-    return await sql<CustomerField[]>`
-      SELECT id, name, email, image_url
-      FROM customers
-      ORDER BY name ASC;
-    `;
-  } catch (err) {
-    console.error("Database Error:", err);
+  const { data, error } = await supabaseServer
+    .from("customers")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Database Error:", error);
     throw new Error("Failed to fetch customers.");
   }
+
+  return data || [];
 }
 
 /* ------------------------- Filtered Customers ------------------------- */
 export async function fetchFilteredCustomers(
   query: string
 ): Promise<CustomersTableType[]> {
-  const search = `%${query || ""}%`;
+  const filter = `%${query}%`;
 
-  try {
-    const data = await sql<CustomersTableType[]>`
-      SELECT
-        customers.id,
-        customers.name,
-        customers.email,
-        customers.image_url,
-        COUNT(invoices.id) AS total_invoices,
-        SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-        SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-      FROM customers
-      LEFT JOIN invoices ON customers.id = invoices.customer_id
-      WHERE
-        customers.name ILIKE ${search} OR
-        customers.email ILIKE ${search}
-      GROUP BY customers.id, customers.name, customers.email, customers.image_url
-      ORDER BY customers.name ASC
-      LIMIT 50;
-    `;
+  const { data, error } = await supabaseServer
+    .from("customers")
+    .select(
+      `
+      id,
+      name,
+      email,
+      image_url,
+      invoices:invoices (
+        status,
+        amount
+      )
+    `
+    )
+    .or(
+      `
+      name.ilike.${filter},
+      email.ilike.${filter}
+    `
+    )
+    .order("name", { ascending: true });
 
-    return data.map((c) => ({
-      ...c,
-      total_invoices: Number(c.total_invoices) || 0,
-      total_pending: Number(c.total_pending) || 0,
-      total_paid: Number(c.total_paid) || 0,
-    }));
-  } catch (err) {
-    console.error("Database Error:", err);
-    throw new Error("Failed to fetch customer table.");
+  if (error) {
+    console.error("Database Error:", error);
+    throw new Error("Failed to fetch customers.");
   }
+
+  return (data || []).map((c: any) => {
+    const invoices = c.invoices || [];
+
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      image_url: c.image_url,
+      total_invoices: invoices.length,
+      total_pending: invoices
+        .filter((i: any) => i.status === "pending")
+        .reduce((sum: number, i: any) => sum + Number(i.amount), 0),
+      total_paid: invoices
+        .filter((i: any) => i.status === "paid")
+        .reduce((sum: number, i: any) => sum + Number(i.amount), 0),
+    };
+  });
+}
+
+/* ------------------------- DASHBOARD CARD DATA ------------------------- */
+export async function fetchCardData() {
+  const { count: totalPaidInvoicesRaw, error: paidError } =
+    await supabaseServer.from("invoices").select("id", { count: "exact" }).eq("status", "paid");
+  if (paidError) throw paidError;
+
+  const { count: totalPendingInvoicesRaw, error: pendingError } =
+    await supabaseServer.from("invoices").select("id", { count: "exact" }).eq("status", "pending");
+  if (pendingError) throw pendingError;
+
+  const { count: numberOfInvoicesRaw, error: invoiceError } =
+    await supabaseServer.from("invoices").select("id", { count: "exact" });
+  if (invoiceError) throw invoiceError;
+
+  const { count: numberOfCustomersRaw, error: customerError } =
+    await supabaseServer.from("customers").select("id", { count: "exact" });
+  if (customerError) throw customerError;
+
+  return {
+    totalPaidInvoices: String(totalPaidInvoicesRaw || 0),
+    totalPendingInvoices: String(totalPendingInvoicesRaw || 0),
+    numberOfInvoices: numberOfInvoicesRaw || 0,
+    numberOfCustomers: numberOfCustomersRaw || 0,
+  };
 }

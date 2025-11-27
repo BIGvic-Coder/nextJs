@@ -12,10 +12,10 @@ export default async function CardWrapper() {
 
   return (
     <Cards
-      totalPaidInvoices={totalPaidInvoices}
-      totalPendingInvoices={totalPendingInvoices}
-      numberOfInvoices={numberOfInvoices}
-      numberOfCustomers={numberOfCustomers}
+      totalPaidInvoices={totalPaidInvoices} // string
+      totalPendingInvoices={totalPendingInvoices} // string
+      numberOfInvoices={numberOfInvoices} // number
+      numberOfCustomers={numberOfCustomers} // number
     />
   );
 }
