@@ -57,7 +57,6 @@ export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
         customers.image_url
       FROM invoices
       INNER JOIN customers ON invoices.customer_id = customers.id
-      WHERE customers.id IS NOT NULL
       ORDER BY invoices.date DESC
       LIMIT 5;
     `;
@@ -158,7 +157,6 @@ export async function fetchInvoicesPages(query: string): Promise<number> {
         invoices.date::text ILIKE ${search} OR
         invoices.status ILIKE ${search};
     `;
-
     return Math.ceil(Number(data?.[0]?.count ?? 0) / ITEMS_PER_PAGE);
   } catch (error) {
     console.error("Database Error:", error);

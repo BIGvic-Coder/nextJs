@@ -16,9 +16,8 @@ type LatestInvoice = {
 export default function LatestInvoices({
   latestInvoices,
 }: {
-  latestInvoices?: LatestInvoice[]; // ← optional and safe
+  latestInvoices?: LatestInvoice[];
 }) {
-  // ✅ Guard against undefined
   if (!latestInvoices || latestInvoices.length === 0) {
     return (
       <div className="col-span-4 rounded-xl bg-gray-50 p-4 shadow-sm text-center text-gray-500">
@@ -35,7 +34,6 @@ export default function LatestInvoices({
         </h2>
       </div>
 
-      {/* ✅ Invoice list */}
       <div className="bg-white px-6">
         {latestInvoices.map((invoice) => (
           <div
