@@ -1,4 +1,5 @@
-export const runtime = "nodejs"; // ✅ Node runtime for Vercel
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 import { Suspense } from "react";
 import { lusitana } from "@/app/ui/fonts";
@@ -10,21 +11,27 @@ import { fetchFilteredInvoices, fetchInvoicesPages } from "@/app/lib/data";
 export default async function InvoicesPage(props: {
   searchParams?: Promise<Record<string, string | string[]>>;
 }) {
-  // Await the promise so Vercel can handle server-side runtime
-  const resolved = await props.searchParams;
+  // ✅ Await the promise to get the actual query parameters
+  const resolved = props.searchParams ? await props.searchParams : {};
 
   const queryRaw = resolved?.query;
   const pageRaw = resolved?.page;
 
   const query = Array.isArray(queryRaw) ? queryRaw[0] : queryRaw ?? "";
-
   const pageNum = Number(Array.isArray(pageRaw) ? pageRaw[0] : pageRaw);
   const currentPage = Number.isFinite(pageNum) && pageNum > 0 ? pageNum : 1;
 
-  const [invoices, totalPages] = await Promise.all([
-    fetchFilteredInvoices(query, currentPage),
-    fetchInvoicesPages(query),
-  ]);
+  let invoices = [];
+  let totalPages = 1;
+
+  try {
+    [invoices, totalPages] = await Promise.all([
+      fetchFilteredInvoices(query, currentPage),
+      fetchInvoicesPages(query),
+    ]);
+  } catch (err) {
+    console.error("Failed to fetch invoices:", err);
+  }
 
   return (
     <div className="w-full max-w-5xl mx-auto">
