@@ -8,12 +8,12 @@ import {
   LatestInvoiceRaw,
   Revenue,
 } from "./definitions";
-import { formatCurrency } from "./utils";
 
 const ITEMS_PER_PAGE = 6;
 
 /* ------------------------- Fetch Revenue ------------------------- */
 export async function fetchRevenue(): Promise<Revenue[]> {
+  if (!supabaseServer) return [];
   const { data, error } = await supabaseServer
     .from("revenue")
     .select("*")
@@ -21,14 +21,15 @@ export async function fetchRevenue(): Promise<Revenue[]> {
 
   if (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch revenue data.");
+    return [];
   }
-
   return data || [];
 }
 
 /* ------------------------- Latest Invoices ------------------------- */
 export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
+  if (!supabaseServer) return [];
+
   const { data, error } = await supabaseServer
     .from("invoices")
     .select(
@@ -45,7 +46,7 @@ export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
 
   if (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch latest invoices.");
+    return [];
   }
 
   return (data || []).map((inv: any) => ({
@@ -64,13 +65,13 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number
 ): Promise<InvoicesTable[]> {
+  if (!supabaseServer) return [];
+
   const safePage = currentPage > 0 ? currentPage : 1;
   const from = (safePage - 1) * ITEMS_PER_PAGE;
   const to = from + ITEMS_PER_PAGE - 1;
 
-  const filter = `%${query}%`;
-
-  const { data, error } = await supabaseServer
+  let supabaseQuery = supabaseServer
     .from("invoices")
     .select(
       `
@@ -82,20 +83,20 @@ export async function fetchFilteredInvoices(
       customers:customer_id (name, email, image_url)
     `
     )
-    .or(
-      `
-      customers.name.ilike.${filter},
-      customers.email.ilike.${filter},
-      amount::text.ilike.${filter},
-      status.ilike.${filter}
-    `
-    )
     .range(from, to)
     .order("date", { ascending: false });
 
+  if (query?.trim()) {
+    const filter = `%${query.trim()}%`;
+    supabaseQuery = supabaseQuery.or(
+      `customers.name.ilike.${filter},customers.email.ilike.${filter},amount::text.ilike.${filter},status.ilike.${filter}`
+    );
+  }
+
+  const { data, error } = await supabaseQuery;
   if (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch invoices.");
+    return [];
   }
 
   return (data || []).map((inv: any) => ({
@@ -112,39 +113,43 @@ export async function fetchFilteredInvoices(
 
 /* ------------------------- Invoice Count ------------------------- */
 export async function fetchInvoicesPages(query: string): Promise<number> {
-  const filter = `%${query}%`;
+  if (!supabaseServer) return 0;
 
-  const { count, error } = await supabaseServer
+  let supabaseQuery = supabaseServer
     .from("invoices")
-    .select("id", { count: "exact" })
-    .or(
-      `
-      customers.name.ilike.${filter},
-      customers.email.ilike.${filter},
-      amount::text.ilike.${filter},
-      status.ilike.${filter}
-    `
-    );
+    .select("id", { count: "exact" });
 
+  if (query?.trim()) {
+    const filter = `%${query.trim()}%`;
+    supabaseQuery = supabaseQuery.or(
+      `customers.name.ilike.${filter},customers.email.ilike.${filter},amount::text.ilike.${filter},status.ilike.${filter}`
+    );
+  }
+
+  const { count, error } = await supabaseQuery;
   if (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch total invoice count.");
+    return 0;
   }
 
   return Math.ceil((count || 0) / ITEMS_PER_PAGE);
 }
 
 /* ------------------------- Single Invoice By ID ------------------------- */
-export async function fetchInvoiceById(id: string): Promise<InvoiceForm> {
+export async function fetchInvoiceById(
+  id: string
+): Promise<InvoiceForm | null> {
+  if (!supabaseServer) return null;
+
   const { data, error } = await supabaseServer
     .from("invoices")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch invoice.");
+    return null;
   }
 
   return {
@@ -155,6 +160,7 @@ export async function fetchInvoiceById(id: string): Promise<InvoiceForm> {
 
 /* ------------------------- All Customers ------------------------- */
 export async function fetchCustomers(): Promise<CustomerField[]> {
+  if (!supabaseServer) return [];
   const { data, error } = await supabaseServer
     .from("customers")
     .select("*")
@@ -162,9 +168,8 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
 
   if (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch customers.");
+    return [];
   }
-
   return data || [];
 }
 
@@ -172,9 +177,9 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
 export async function fetchFilteredCustomers(
   query: string
 ): Promise<CustomersTableType[]> {
-  const filter = `%${query}%`;
+  if (!supabaseServer) return [];
 
-  const { data, error } = await supabaseServer
+  let supabaseQuery = supabaseServer
     .from("customers")
     .select(
       `
@@ -188,22 +193,23 @@ export async function fetchFilteredCustomers(
       )
     `
     )
-    .or(
-      `
-      name.ilike.${filter},
-      email.ilike.${filter}
-    `
-    )
     .order("name", { ascending: true });
 
+  if (query?.trim()) {
+    const filter = `%${query.trim()}%`;
+    supabaseQuery = supabaseQuery.or(
+      `name.ilike.${filter},email.ilike.${filter}`
+    );
+  }
+
+  const { data, error } = await supabaseQuery;
   if (error) {
     console.error("Database Error:", error);
-    throw new Error("Failed to fetch customers.");
+    return [];
   }
 
   return (data || []).map((c: any) => {
     const invoices = c.invoices || [];
-
     return {
       id: c.id,
       name: c.name,
@@ -222,21 +228,34 @@ export async function fetchFilteredCustomers(
 
 /* ------------------------- DASHBOARD CARD DATA ------------------------- */
 export async function fetchCardData() {
-  const { count: totalPaidInvoicesRaw, error: paidError } =
-    await supabaseServer.from("invoices").select("id", { count: "exact" }).eq("status", "paid");
-  if (paidError) throw paidError;
+  if (!supabaseServer)
+    return {
+      totalPaidInvoices: "0",
+      totalPendingInvoices: "0",
+      numberOfInvoices: 0,
+      numberOfCustomers: 0,
+    };
+
+  const { count: totalPaidInvoicesRaw, error: paidError } = await supabaseServer
+    .from("invoices")
+    .select("id", { count: "exact" })
+    .eq("status", "paid");
+  if (paidError) console.error(paidError);
 
   const { count: totalPendingInvoicesRaw, error: pendingError } =
-    await supabaseServer.from("invoices").select("id", { count: "exact" }).eq("status", "pending");
-  if (pendingError) throw pendingError;
+    await supabaseServer
+      .from("invoices")
+      .select("id", { count: "exact" })
+      .eq("status", "pending");
+  if (pendingError) console.error(pendingError);
 
   const { count: numberOfInvoicesRaw, error: invoiceError } =
     await supabaseServer.from("invoices").select("id", { count: "exact" });
-  if (invoiceError) throw invoiceError;
+  if (invoiceError) console.error(invoiceError);
 
   const { count: numberOfCustomersRaw, error: customerError } =
     await supabaseServer.from("customers").select("id", { count: "exact" });
-  if (customerError) throw customerError;
+  if (customerError) console.error(customerError);
 
   return {
     totalPaidInvoices: String(totalPaidInvoicesRaw || 0),
